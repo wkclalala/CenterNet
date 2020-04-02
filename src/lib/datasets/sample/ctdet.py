@@ -36,7 +36,14 @@ class CTDetDataset(data.Dataset):
 
     img = cv2.imread(img_path)
 
+    #edit
+    img = np.asarray(img)
+    img = np.pad(img, ((0,24),(0,0),(0,0)), 'constant')
+
+    #shape0 360 shape1 640
     height, width = img.shape[0], img.shape[1]
+
+    # print(height, width)
     c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
     if self.opt.keep_res:
       input_h = (height | self.opt.pad) + 1
@@ -99,7 +106,13 @@ class CTDetDataset(data.Dataset):
     for k in range(num_objs):
       ann = anns[k]
       bbox = self._coco_box_to_bbox(ann['bbox'])
-      cls_id = int(self.cat_ids[ann['category_id']])
+      # print()
+      # print()
+      # print()
+      # print(self.cat_ids)
+      # print()
+      # print(ann['category_id'])
+      cls_id = int(self.cat_ids[int(ann['category_id'].strip())])
       if flipped:
         bbox[[0, 2]] = width - bbox[[2, 0]] - 1
       bbox[:2] = affine_transform(bbox[:2], trans_output)

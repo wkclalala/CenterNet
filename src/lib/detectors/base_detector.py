@@ -25,6 +25,7 @@ class BaseDetector(object):
     self.model = load_model(self.model, opt.load_model)
     self.model = self.model.to(opt.device)
     self.model.eval()
+    
 
     self.mean = np.array(opt.mean, dtype=np.float32).reshape(1, 1, 3)
     self.std = np.array(opt.std, dtype=np.float32).reshape(1, 1, 3)
@@ -33,6 +34,7 @@ class BaseDetector(object):
     self.scales = opt.test_scales
     self.opt = opt
     self.pause = True
+    self.image_path = None
 
   def pre_process(self, image, scale, meta=None):
     height, width = image.shape[0:2]
@@ -80,6 +82,7 @@ class BaseDetector(object):
    raise NotImplementedError
 
   def run(self, image_or_path_or_tensor, meta=None):
+    self.image_path = image_or_path_or_tensor
     load_time, pre_time, net_time, dec_time, post_time = 0, 0, 0, 0, 0
     merge_time, tot_time = 0, 0
     debugger = Debugger(dataset=self.opt.dataset, ipynb=(self.opt.debug==3),
@@ -137,8 +140,8 @@ class BaseDetector(object):
     tot_time += end_time - start_time
 
     if self.opt.debug >= 1:
-      self.show_results(debugger, image, results)
+      iou = self.show_results(debugger, image, results)
     
     return {'results': results, 'tot': tot_time, 'load': load_time,
             'pre': pre_time, 'net': net_time, 'dec': dec_time,
-            'post': post_time, 'merge': merge_time}
+            'post': post_time, 'merge': merge_time, 'iou': iou}

@@ -45,14 +45,18 @@ class BasicBlock(nn.Module):
     def forward(self, x, residual=None):
         if residual is None:
             residual = x
-
+        # print(residual.size())
         out = self.conv1(x)
+        # print(out.size())
         out = self.bn1(out)
+        # print(out.size())
         out = self.relu(out)
-
+        # print(out.size())
         out = self.conv2(out)
+        # print(out.size())
         out = self.bn2(out)
-
+        # print("out",out.size())
+        # print("residual",residual.size())
         out += residual
         out = self.relu(out)
 
@@ -70,7 +74,7 @@ class Bottleneck(nn.Module):
                                kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(bottle_planes, momentum=BN_MOMENTUM)
         self.conv2 = nn.Conv2d(bottle_planes, bottle_planes, kernel_size=3,
-                               stride=stride, padding=dilation,
+                               stride=stride, padding=True,
                                bias=False, dilation=dilation)
         self.bn2 = nn.BatchNorm2d(bottle_planes, momentum=BN_MOMENTUM)
         self.conv3 = nn.Conv2d(bottle_planes, planes,
@@ -113,8 +117,10 @@ class BottleneckX(nn.Module):
         self.conv1 = nn.Conv2d(inplanes, bottle_planes,
                                kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(bottle_planes, momentum=BN_MOMENTUM)
+
+        #edited padding
         self.conv2 = nn.Conv2d(bottle_planes, bottle_planes, kernel_size=3,
-                               stride=stride, padding=dilation, bias=False,
+                               stride=stride, padding=False, bias=False,
                                dilation=dilation, groups=cardinality)
         self.bn2 = nn.BatchNorm2d(bottle_planes, momentum=BN_MOMENTUM)
         self.conv3 = nn.Conv2d(bottle_planes, planes,

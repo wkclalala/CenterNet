@@ -41,7 +41,7 @@ class Debugger(object):
         (255, 0, 0), (0, 0, 255), (255, 0, 0), (0, 0, 255),
         (255, 0, 0), (0, 0, 255), (255, 0, 0), (0, 0, 255),
         (255, 0, 0), (0, 0, 255)]
-    elif num_classes == 80 or dataset == 'coco':
+    elif num_classes == 96 or dataset == 'coco':
       self.names = coco_class_name
     elif num_classes == 20 or dataset == 'pascal':
       self.names = pascal_class_name
@@ -168,7 +168,7 @@ class Debugger(object):
       cv2.circle(self.imgs[img_id], (rect1[0], rect2[1]), int(10 * conf), c, 1)
       cv2.circle(self.imgs[img_id], (rect2[0], rect1[1]), int(10 * conf), c, 1)
 
-  def add_coco_bbox(self, bbox, cat, conf=1, show_txt=True, img_id='default'): 
+  def add_coco_bbox(self, bbox, cat, conf=1, show_txt=False, img_id='default', iou=1):
     bbox = np.array(bbox, dtype=np.int32)
     # cat = (int(cat) + 1) % 80
     cat = int(cat)
@@ -181,12 +181,27 @@ class Debugger(object):
     cat_size = cv2.getTextSize(txt, font, 0.5, 2)[0]
     cv2.rectangle(
       self.imgs[img_id], (bbox[0], bbox[1]), (bbox[2], bbox[3]), c, 2)
-    if show_txt:
-      cv2.rectangle(self.imgs[img_id],
-                    (bbox[0], bbox[1] - cat_size[1] - 2),
-                    (bbox[0] + cat_size[0], bbox[1] - 2), c, -1)
-      cv2.putText(self.imgs[img_id], txt, (bbox[0], bbox[1] - 2), 
-                  font, 0.5, (0, 0, 0), thickness=1, lineType=cv2.LINE_AA)
+    if cat==0:
+        cv2.rectangle(self.imgs[img_id],
+                      (bbox[0], bbox[1] - cat_size[1] - 2),
+                      (bbox[0] + cat_size[0], bbox[1] - 2), c, -1)
+        cv2.putText(self.imgs[img_id], "Truth", (bbox[0], bbox[1] - 2),
+                    font, 0.5, (0, 0, 0), thickness=1, lineType=cv2.LINE_AA)
+    else:
+        txt = "Predict"
+        if show_txt:
+            txt = txt + " " + str(iou)
+        cv2.rectangle(self.imgs[img_id],
+                      (bbox[0], bbox[1] - cat_size[1] - 2),
+                      (bbox[0] + cat_size[0] + 40, bbox[1] - 2), c, -1)
+        cv2.putText(self.imgs[img_id], txt, (bbox[0], bbox[1] - 2),
+                    font, 0.5, (0, 0, 0), thickness=1, lineType=cv2.LINE_AA)
+    # if show_txt:
+    #   cv2.rectangle(self.imgs[img_id],
+    #                 (bbox[0], bbox[1] - cat_size[1] - 2),
+    #                 (bbox[0] + cat_size[0], bbox[1] - 2), c, -1)
+    #   cv2.putText(self.imgs[img_id], txt, (bbox[0], bbox[1] - 2),
+    #               font, 0.5, (0, 0, 0), thickness=1, lineType=cv2.LINE_AA)
 
   def add_coco_hp(self, points, img_id='default'): 
     points = np.array(points, dtype=np.int32).reshape(self.num_joints, 2)
@@ -441,19 +456,39 @@ pascal_class_name = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus",
   "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
 coco_class_name = [
-     'person', 'bicycle', 'car', 'motorcycle', 'airplane',
-     'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant',
-     'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse',
-     'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack',
-     'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis',
-     'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove',
-     'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass',
-     'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich',
-     'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
-     'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv',
-     'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave',
-     'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
-     'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+     # 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
+     # 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant',
+     # 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse',
+     # 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack',
+     # 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis',
+     # 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove',
+     # 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass',
+     # 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich',
+     # 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
+     # 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv',
+     # 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave',
+     # 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
+     # 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+    'boat1', 'boat2', 'boat3', 'boat4', 'boat5',
+    'boat6', 'boat7', 'boat8', 'building1', 'building2',
+    'building3', 'car1', 'car2', 'car3', 'car4',
+    'car5', 'car6', 'car8', 'car9',
+    'car10', 'car11', 'car12', 'car13', 'car14',
+    'car15', 'car16', 'car17', 'car18', 'car19',
+    'car20', 'car21', 'wakeboard1', 'car23', 'car24',
+    'drone1', 'drone2', 'drone3', 'drone4', 'group2',
+    'group3', 'horseride1', 'paraglider1', 'person1', 'person2',
+    'person3', 'person4', 'person5', 'person6', 'person7',
+    'person8', 'person9', 'person10', 'person11', 'person12',
+    'person13', 'person14', 'person15', 'person16', 'person17',
+    'person18', 'person19', 'person20', 'person21', 'person22',
+    'person23', 'person24', 'person25', 'person26', 'person27',
+    'person28', 'person29', 'riding1', 'riding2', 'riding3',
+    'riding4', 'riding5', 'riding6', 'riding7', 'riding8',
+    'riding9', 'riding10', 'riding11', 'riding12', 'riding13',
+    'riding14', 'riding15', 'riding16', 'riding17', 'truck1',
+    'truck2', 'car22', 'wakeboard2', 'wakeboard3', 'wakeboard4',
+    'whale1'
 ]
 
 color_list = np.array(

@@ -7,6 +7,8 @@ import numpy as np
 from progress.bar import Bar
 import time
 import torch
+import os
+import json
 
 try:
   from external.nms import soft_nms
@@ -21,12 +23,17 @@ from utils.debugger import Debugger
 
 from .base_detector import BaseDetector
 
+from thop import profile
+
 class CtdetDetector(BaseDetector):
   def __init__(self, opt):
     super(CtdetDetector, self).__init__(opt)
   
   def process(self, images, return_time=False):
     with torch.no_grad():
+      # macs, params = profile(self.model, inputs=(images,))
+      # print("macs: ",macs)
+      # print("params: ", params)
       output = self.model(images)[-1]
       hm = output['hm'].sigmoid_()
       wh = output['wh']
@@ -89,8 +96,48 @@ class CtdetDetector(BaseDetector):
 
   def show_results(self, debugger, image, results):
     debugger.add_img(image, img_id='ctdet')
+    anno_path = os.path.join(self.opt.data_dir, 'data/box_test.json')
+    file_name = self.image_path.split("/")[-1]
+    print(file_name)
+    ground_truth = []
+    with open(anno_path) as json_file:
+        data = json.load(json_file)
+        ground_truth = data[file_name]
+
+    iou = 0
+    max_idx = 0
+    max_confidence = 0
+    max_cat = 0
+    # print("threshold: ", self.opt.vis_thresh)
     for j in range(1, self.num_classes + 1):
+      i = 0
       for bbox in results[j]:
-        if bbox[4] > self.opt.vis_thresh:
-          debugger.add_coco_bbox(bbox[:4], j - 1, bbox[4], img_id='ctdet')
-    debugger.show_all_imgs(pause=self.pause)
+        # print("Confidence: ", bbox[4])
+        if bbox[4]>max_confidence:
+          max_confidence = bbox[4]
+          max_idx = i
+          max_cat = j
+        i+=1
+    # print("Print image")
+    # print(iou)
+    # print(max_cat)
+    # print(max_idx)
+    # print(max_confidence)
+    bbox_s = results[max_cat][max_idx]
+    # print(bbox_s)
+    # print(ground_truth)
+    point_1 = [max(ground_truth[0], bbox_s[0]), max(ground_truth[1], bbox_s[1])]
+    point_2 = [min(ground_truth[2] + ground_truth[0], bbox_s[2]),
+               min(ground_truth[3] + ground_truth[1], bbox_s[3])]
+    small_area = (point_2[1] - point_1[1]) * (point_2[0] - point_1[0])
+    iou = small_area / (
+              (ground_truth[2] * ground_truth[3]) + (bbox_s[3] - bbox_s[1]) * (bbox_s[2] - bbox_s[0]) - small_area)
+    if iou < 0:
+      iou = 0
+    debugger.add_coco_bbox(
+      [ground_truth[0], ground_truth[1], ground_truth[0] + ground_truth[2], ground_truth[1] + ground_truth[3]],
+      0, 1, False, img_id='ctdet')
+    debugger.add_coco_bbox(bbox_s[:4], 1, bbox_s[4], True, img_id='ctdet', iou="{:.3f}".format(iou))
+    if(self.opt.save_image):
+      debugger.save_all_imgs(path='/home/kw573/work/CenterNet/exp/ctdet/default',genID=True)
+    return iou
